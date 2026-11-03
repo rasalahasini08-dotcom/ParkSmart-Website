@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ParkSmart — The Concurrency-Safe Urban Parking Allocator</title>
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🅿️</text></svg>">
+    <!-- Google Font (Inter) with fallback -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <!-- Navigation Bar -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="#home" class="nav-brand" onclick="navigateTo('home')">
+                <span class="brand-icon">🅿️</span>
+                <div class="brand-text">
+                    <span class="brand-title">Park<span class="brand-accent">Smart</span></span>
+                    <span class="brand-tagline">Smart Parking, Less Stress.</span>
+                </div>
+            </a>
+
+            <nav class="nav-menu" id="nav-menu">
+                <a href="#home" class="nav-link active" data-view="home" onclick="navigateTo('home')">Home</a>
+                <a href="#user-dashboard" class="nav-link" data-view="user-dashboard" onclick="navigateTo('user-dashboard')">User Dashboard</a>
+                <a href="#admin-dashboard" class="nav-link" data-view="admin-dashboard" onclick="navigateTo('admin-dashboard')">Admin Dashboard</a>
+                <a href="#analytics" class="nav-link" data-view="analytics" onclick="navigateTo('analytics')">Surge Analytics</a>
+            </nav>
+
+            <div class="nav-user-controls" id="nav-user-controls">
+                <button class="btn btn-outline btn-sm" onclick="openAuthModal('user')">🔑 Login</button>
+            </div>
+
+            <div class="nav-status">
+                <span class="status-indicator live" id="live-indicator" title="Connected to local ParkSmart backend">
+                    <span class="pulse-dot"></span> Live Local Sync
+                </span>
+            </div>
+
+            <button class="mobile-menu-toggle" id="mobile-toggle" aria-label="Toggle navigation">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area (Single Page App Views) -->
+    <main class="main-wrapper">
+
+        <!-- ======================================================== -->
+        <!-- VIEW 1: HOME PAGE (5 Hubs, 10 Shared Slots Overview)    -->
+        <!-- ======================================================== -->
+        <section id="view-home" class="view-section active">
+            <!-- Hero Section -->
+            <div class="hero-card">
+                <div class="hero-content">
+                    <div class="academic-badge">🎓 B.Tech IT Mini Project Demonstration</div>
+                    <h1 class="hero-heading">Welcome to <span class="text-blue">ParkSmart</span></h1>
+                    <p class="hero-tagline-lead">Smart Parking, Less Stress.</p>
+                    <p class="hero-description">
+                        The Concurrency-Safe Urban Parking Allocator featuring <strong>5 Urban Hubs</strong> 
+                        (Gachibowli, Ameerpet, Banjara Hills, HITEC City, Madhapur) and <strong>10 Shared Parking Slots (P1 to P10)</strong>.
+                        The same shared slot cannot be booked at two different hubs for overlapping times!
+                    </p>
+                    <div class="hero-actions">
+                        <button class="btn btn-primary btn-lg" onclick="handleHeroBookAction()">
+                            🅿️ Find &amp; Book Parking
+                        </button>
+                        <button class="btn btn-outline btn-lg" onclick="navigateTo('admin-dashboard')">
+                            🛡️ Admin Access
+                        </button>
+                        <button class="btn btn-secondary btn-lg" onclick="navigateTo('analytics')">
+                            📊 Surge Analytics
+                        </button>
+                    </div>
+                </div>
+                <div class="hero-concurrency-badge">
+                    <div class="shield-icon">🛡️</div>
+                    <div>
+                        <h4>Cross-Hub Overlap Protection</h4>
+                        <p>Shared slots (P1 to P10) are atomically protected across all 5 hubs using SQLite Immediate Transactions &amp; Mutex.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Login Portals Grid -->
+            <div class="portals-grid">
+                <!-- User Login Portal Card -->
+                <div class="portal-card user-portal-card">
+                    <div class="portal-header">
+                        <span class="portal-icon">🚗</span>
+                        <div>
+                            <h3>User Portal</h3>
+                            <p>Select your hub, pick a shared slot (P1–P10), and view history.</p>
+                        </div>
+                    </div>
+                    <p class="portal-text">
+                        Choose among the 5 urban hubs, set your arrival and departure hours, and reserve a shared bay with zero overlap risk.
+                    </p>
+                    <div class="portal-actions">
+                        <button class="btn btn-primary btn-block" onclick="openAuthModal('user')">
+                            User Sign In / Sign Up
+                        </button>
+                        <button class="btn btn-outline btn-block btn-sm" onclick="quickLoginDemoUser()">
+                            ⚡ One-Click Demo User (user@parksmart.local)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Admin Login Portal Card -->
+                <div class="portal-card admin-portal-card">
+                    <div class="portal-header">
+                        <span class="portal-icon">🛡️</span>
+                        <div>
+                            <h3>Admin Portal</h3>
+                            <p>Manage the 5 hubs, toggle shared slots maintenance, audit bookings.</p>
+                        </div>
+                    </div>
+                    <p class="portal-text">
+                        Protected administration console for parking operators to manage hub rates, inspect the 10 shared slots, and cancel bookings.
+                    </p>
+                    <div class="portal-actions">
+                        <button class="btn btn-primary btn-block" onclick="openAuthModal('admin')">
+                            Admin Sign In
+                        </button>
+                        <button class="btn btn-outline btn-block btn-sm" onclick="quickLoginAdmin()">
+                            ⚡ One-Click Admin (admin / admin123)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live City-Wide Status Banner -->
+            <div class="stats-grid" id="home-stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon bg-blue-light">🏢</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Urban Parking Hubs</span>
+                        <h3 class="stat-value" id="home-stat-facilities">5 Hubs</h3>
+                        <span class="stat-sub">Gachibowli, Ameerpet, Banjara, HITEC, Madhapur</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon bg-blue-light">🅿️</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Shared Parking Slots</span>
+                        <h3 class="stat-value" id="home-stat-total">10 Bays</h3>
+                        <span class="stat-sub">Shared Slots P1 through P10</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon bg-green-light">✅</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Available Slots</span>
+                        <h3 class="stat-value text-green" id="home-stat-available">— Free</h3>
+                        <span class="stat-sub">Ready for Immediate Booking</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon bg-amber-light">🚗</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Active Bookings Today</span>
+                        <h3 class="stat-value text-amber" id="home-stat-occupied">— Booked</h3>
+                        <span class="stat-sub" id="home-stat-occupancy-pct">0% System Occupancy</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5 Urban Hubs Showcase -->
+            <div class="section-container">
+                <div class="section-header">
+                    <h2>5 Urban Parking Hubs</h2>
+                    <p>Select your desired hub to access the 10 shared slots with real-time availability tracking.</p>
+                </div>
+
+                <div class="area-pills-bar" id="home-area-pills">
+                    <!-- Populated dynamically: 5 Hubs -->
+                </div>
+
+                <div class="facilities-grid" id="home-facilities-grid">
+                    <!-- Populated dynamically with 5 hub cards -->
+                </div>
+
+                <div class="sample-disclaimer-box">
+                    <strong>⚠️ Demonstration Notice:</strong> The 5 hubs (Gachibowli, Ameerpet, Banjara Hills, HITEC City, Madhapur) share 10 parking slots (P1 to P10). A slot booked at Gachibowli shows as occupied only at Gachibowli, but cannot be booked at another hub for overlapping times!
+                </div>
+            </div>
+
+            <!-- 3 Simple Steps Process -->
+            <div class="section-container">
+                <div class="section-header">
+                    <h2>How ParkSmart Works</h2>
+                    <p>Experience hassle-free reservations in three reliable, concurrency-guaranteed steps.</p>
+                </div>
+                <div class="steps-grid">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <div class="step-icon">📍</div>
+                        <h3>Select Urban Hub</h3>
+                        <p>Choose from the 5 hubs: Gachibowli, Ameerpet, Banjara Hills, HITEC City, or Madhapur.</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <div class="step-icon">📅</div>
+                        <h3>Choose Time &amp; Slot (P1–P10)</h3>
+                        <p>Set arrival date and hours. The 10 shared slots display Green (available), Red (occupied at this hub), and Blue (selected).</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <div class="step-icon">🎟️</div>
+                        <h3>Instant Receipt &amp; History</h3>
+                        <p>Receive your unique Booking ID. Check or cancel active reservations anytime via your User Dashboard.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ======================================================== -->
+        <!-- VIEW 2: USER DASHBOARD (Hub -> 10 Shared Slots -> History)-->
+        <!-- ======================================================== -->
+        <section id="view-user-dashboard" class="view-section">
+            <div class="view-header">
+                <div>
+                    <h2>User Dashboard</h2>
+                    <p id="user-greeting">Welcome! Reserve your preferred parking bay and view your booking history.</p>
+                </div>
+                <div class="user-badge-pill" id="user-status-pill">
+                    👤 Logged in as Demo User
+                </div>
+            </div>
+
+            <!-- STEP 1: Select Parking Hub -->
+            <div class="facility-selector-section">
+                <div class="facility-section-header">
+                    <div>
+                        <h3>📍 Step 1: Select Your Urban Parking Hub</h3>
+                        <p class="text-muted">Choose one of the 5 hubs to view its pricing and current slot availability.</p>
+                    </div>
+                    <span class="sample-notice-pill">5 Urban Hubs</span>
+                </div>
+
+                <!-- Hub Filter Pills -->
+                <div class="area-pills-bar" id="user-area-pills">
+                    <!-- Populated dynamically: 5 Hubs -->
+                </div>
+
+                <!-- Hub Cards Grid -->
+                <div class="facilities-grid" id="user-facilities-grid">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Selected Hub Summary Banner -->
+            <div class="selected-facility-summary-bar" id="selected-facility-summary">
+                <div>
+                    <span class="fac-title" id="active-facility-name">Gachibowli Hub</span>
+                    <span class="badge badge-normal" id="active-facility-area" style="margin-left: 0.5rem;">Gachibowli</span>
+                    <div class="fac-sub" id="active-facility-address">Financial District Road, Gachibowli, Hyderabad</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 0.82rem; color: var(--text-muted);">Base Hourly Rate</div>
+                    <strong class="text-blue" style="font-size: 1.1rem;" id="active-facility-rate">₹50.00 / hr</strong>
+                </div>
+            </div>
+
+            <!-- STEP 2: Time Selection & Filter Toolbar -->
+            <div class="booking-time-toolbar">
+                <div class="time-toolbar-header">
+                    <h3>🕒 Step 2: Choose Booking Date &amp; Time Window</h3>
+                    <p class="text-muted">The 10 shared slots update to show which bays are free at this hub during this exact interval.</p>
+                </div>
+                <div class="time-picker-controls">
+                    <div class="picker-group">
+                        <label for="picker-date">Booking Date</label>
+                        <input type="date" id="picker-date" class="form-control" onchange="handleTimeWindowChange()">
+                    </div>
+                    <div class="picker-group">
+                        <label for="picker-start-time">Start Time</label>
+                        <select id="picker-start-time" class="form-control" onchange="handleTimeWindowChange()">
+                            <!-- Generated options -->
+                        </select>
+                    </div>
+                    <div class="picker-group">
+                        <label for="picker-end-time">End Time</label>
+                        <select id="picker-end-time" class="form-control" onchange="handleTimeWindowChange()">
+                            <!-- Generated options -->
+                        </select>
+                    </div>
+                    <div class="picker-group action-group">
+                        <label>&nbsp;</label>
+                        <button class="btn btn-secondary" onclick="fetchSlotsForWindow(true)">
+                            🔄 Refresh Bays
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 3: 10 Shared Slots Interactive Grid (P1 to P10) -->
+            <div class="slots-interactive-section">
+                <div class="slots-section-header">
+                    <div>
+                        <h3>🅿️ Step 3: Choose Your Shared Parking Slot (P1 to P10)</h3>
+                        <p class="text-muted">Click an available green bay. Red bays are booked at this hub; your pick lights up in blue.</p>
+                    </div>
+                    <!-- Color Coding Legend -->
+                    <div class="slots-legend">
+                        <div class="legend-item"><span class="legend-color legend-available"></span> Available (Green)</div>
+                        <div class="legend-item"><span class="legend-color legend-booked"></span> Booked at this Hub (Red)</div>
+                        <div class="legend-item"><span class="legend-color legend-selected"></span> Selected (Blue)</div>
+                        <div class="legend-item"><span class="legend-color legend-maintenance"></span> Maintenance (Grey)</div>
+                    </div>
+                </div>
+
+                <div class="hub-rule-notice" style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: #1e40af;">
+                    💡 <strong>Shared Slot Rule:</strong> The 10 slots (P1 to P10) are shared across all 5 hubs. A slot booked at a hub (e.g. Gachibowli) shows as occupied only at Gachibowli during that time, but cannot be booked at another hub for overlapping times! It becomes available again after the booking ends.
+                </div>
+
+                <!-- 10 Slots Grid Container -->
+                <div id="slots-loading" class="loading-state hidden">
+                    <div class="spinner"></div>
+                    <p>Evaluating 10-slot availability across hubs...</p>
+                </div>
+                <div class="slots-25-grid" id="slots-25-grid">
+                    <!-- Populated dynamically: P1 to P10 -->
+                </div>
+
+                <!-- Slot Selection Action Panel -->
+                <div class="slot-selection-panel" id="slot-selection-panel">
+                    <div class="selection-info">
+                        <div class="info-item">
+                            <span class="info-label">Parking Hub:</span>
+                            <span class="info-value" id="sel-facility-display">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Selected Slot:</span>
+                            <span class="info-value text-blue" id="sel-slot-name">None Selected</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Time Window:</span>
+                            <span class="info-value" id="sel-time-window">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Duration:</span>
+                            <span class="info-value" id="sel-duration">0 hrs</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Surge Tier:</span>
+                            <span class="info-value" id="sel-surge-tier">Normal (1.0x)</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Total Amount:</span>
+                            <span class="info-value total-price" id="sel-total-amount">₹0.00</span>
+                        </div>
+                    </div>
+                    <div class="selection-action">
+                        <button class="btn btn-primary btn-lg" id="btn-open-booking-modal" onclick="proceedToBookingConfirmation()" disabled>
+                            🔒 Reserve Selected Slot
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Booking History Section -->
+            <div class="section-container user-history-section">
+                <div class="section-header-left">
+                    <div>
+                        <h2>📜 My Booking History</h2>
+                        <p>View your active reservations, past completed sessions, and cancelled slots.</p>
+                    </div>
+                    <div class="history-filter-tabs">
+                        <button class="tab-btn active" data-tab="current" onclick="switchHistoryTab('current')">Current / Active</button>
+                        <button class="tab-btn" data-tab="previous" onclick="switchHistoryTab('previous')">Previous / Past</button>
+                        <button class="tab-btn" data-tab="cancelled" onclick="switchHistoryTab('cancelled')">Cancelled</button>
+                        <button class="tab-btn" data-tab="all" onclick="switchHistoryTab('all')">All Bookings</button>
+                    </div>
+                </div>
+
+                <div id="history-loading" class="loading-state hidden">
+                    <div class="spinner"></div>
+                    <p>Loading your booking history from database...</p>
+                </div>
+
+                <div id="history-empty" class="empty-state hidden">
+                    <div class="empty-icon">📂</div>
+                    <h3>No Bookings in this Category</h3>
+                    <p>You have no bookings recorded under this tab.</p>
+                </div>
+
+                <div class="history-grid" id="history-grid">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ======================================================== -->
+        <!-- VIEW 3: ADMIN DASHBOARD (Protected Management)          -->
+        <!-- ======================================================== -->
+        <section id="view-admin-dashboard" class="view-section">
+            <div class="view-header">
+                <div>
+                    <h2>🛡️ Administrator Dashboard</h2>
+                    <p>Manage the 5 urban hubs, inspect 10 shared slots, and monitor system bookings.</p>
+                </div>
+                <div class="admin-badge-pill">
+                    🔑 Verified Administrator Session
+                </div>
+            </div>
+
+            <!-- Admin Overview KPI Cards -->
+            <div class="admin-kpi-grid">
+                <div class="admin-kpi-card">
+                    <span class="kpi-label">Urban Hubs</span>
+                    <h3 class="kpi-value text-blue" id="adm-total-facilities">5 Hubs</h3>
+                    <span class="kpi-sub">Gachibowli, Ameerpet, Banjara, HITEC, Madhapur</span>
+                </div>
+                <div class="admin-kpi-card">
+                    <span class="kpi-label">Shared Parking Slots</span>
+                    <h3 class="kpi-value" id="adm-total-slots">10 Bays</h3>
+                    <span class="kpi-sub"><span id="adm-active-slots">10</span> Active • <span id="adm-maint-slots">0</span> Maintenance</span>
+                </div>
+                <div class="admin-kpi-card">
+                    <span class="kpi-label">Today's Active Bookings</span>
+                    <h3 class="kpi-value text-blue" id="adm-today-bookings">—</h3>
+                    <span class="kpi-sub" id="adm-occupancy-rate">0% System Occupancy</span>
+                </div>
+                <div class="admin-kpi-card">
+                    <span class="kpi-label">Total Revenue</span>
+                    <h3 class="kpi-value text-green" id="adm-total-revenue">₹0.00</h3>
+                    <span class="kpi-sub">From Persistent SQLite DB</span>
+                </div>
+            </div>
+
+            <!-- Admin Dashboard Tabs -->
+            <div class="admin-tabs-nav">
+                <button class="admin-tab active" data-atab="facilities" onclick="switchAdminTab('facilities')">
+                    🏢 Manage 5 Urban Hubs
+                </button>
+                <button class="admin-tab" data-atab="slots" onclick="switchAdminTab('slots')">
+                    🅿️ Manage 10 Shared Slots (P1 to P10)
+                </button>
+                <button class="admin-tab" data-atab="bookings" onclick="switchAdminTab('bookings')">
+                    📋 View All User Bookings
+                </button>
+            </div>
+
+            <!-- Admin Tab 1: Manage 5 Parking Hubs -->
+            <div id="admin-tab-facilities" class="admin-tab-content active">
+                <div class="tab-content-header">
+                    <div>
+                        <h3>The 5 Urban Parking Hubs Directory</h3>
+                        <p class="text-muted">Administrators can edit hub details, addresses, and base hourly rates.</p>
+                    </div>
+                </div>
+                <div class="admin-slots-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Hub Name</th>
+                                <th>Area</th>
+                                <th>Address</th>
+                                <th>Hourly Rate</th>
+                                <th>Shared Capacity</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-facilities-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Admin Tab 2: 10 Shared Slots Management -->
+            <div id="admin-tab-slots" class="admin-tab-content">
+                <div class="tab-content-header">
+                    <div>
+                        <h3>10 Shared Slots (P1 to P10) Maintenance Override</h3>
+                        <p class="text-muted">Toggle any shared bay between Operational and Under Maintenance across all hubs.</p>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="fetchAdminSlots()">🔄 Refresh Slots</button>
+                </div>
+                <div class="admin-slots-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Slot Number</th>
+                                <th>Category</th>
+                                <th>Base Hourly Rate</th>
+                                <th>Operational Status</th>
+                                <th>All-Time Reservations</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-slots-tbody">
+                            <!-- Populated dynamically: P1 to P10 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Admin Tab 3: All Bookings Audit -->
+            <div id="admin-tab-bookings" class="admin-tab-content">
+                <div class="tab-content-header">
+                    <div>
+                        <h3>All User Bookings Audit Log</h3>
+                        <p class="text-muted">Real-time log of all reservations across all hubs and shared slots with emergency cancellation.</p>
+                    </div>
+                    <div class="admin-filters-inline">
+                        <input type="text" id="adm-search-input" placeholder="Search by ID, name, phone, slot..." class="form-control form-control-sm" oninput="handleAdminSearch()">
+                        <select id="adm-facility-filter" class="form-control form-control-sm" onchange="handleAdminSearch()">
+                            <option value="ALL">All Hubs</option>
+                        </select>
+                        <select id="adm-status-filter" class="form-control form-control-sm" onchange="handleAdminSearch()">
+                            <option value="ALL">All Statuses</option>
+                            <option value="CONFIRMED">Active / Confirmed</option>
+                            <option value="RELEASED">Released</option>
+                            <option value="CANCELLED">Cancelled</option>
+                        </select>
+                        <button class="btn btn-secondary btn-sm" onclick="fetchAdminBookings()">🔄 Refresh</button>
+                    </div>
+                </div>
+                <div class="admin-bookings-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Hub &amp; Area</th>
+                                <th>Driver</th>
+                                <th>Phone</th>
+                                <th>Slot</th>
+                                <th>Date</th>
+                                <th>Time Window</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-bookings-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ======================================================== -->
+        <!-- VIEW 4: SURGE ANALYTICS & 5 HUBS DEMAND COMPARISON     -->
+        <!-- ======================================================== -->
+        <section id="view-analytics" class="view-section">
+            <div class="view-header">
+                <div>
+                    <h2>Surge Pricing &amp; Demand Analytics</h2>
+                    <p>Live metrics computed directly from persistent database records for the 10 shared slots.</p>
+                </div>
+                <div class="db-verified-pill">
+                    🗄️ Database Calculated (parksmart.db)
+                </div>
+            </div>
+
+            <!-- Analytics Overview Cards -->
+            <div class="analytics-metrics-grid" id="analytics-metrics-grid">
+                <div class="analytics-stat-card">
+                    <span class="label">System Occupancy Rate</span>
+                    <h2 class="value" id="an-occupancy-rate">—</h2>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="an-occupancy-bar" style="width: 0%;"></div>
+                    </div>
+                    <span class="status-badge" id="an-system-surge-status">Calculating...</span>
+                </div>
+
+                <div class="analytics-stat-card">
+                    <span class="label">Total System Capacity</span>
+                    <h2 class="value" id="an-total-capacity">10 Bays</h2>
+                    <span class="subtext"><span id="an-active-bays">10</span> Active Shared Bays (P1 to P10)</span>
+                </div>
+
+                <div class="analytics-stat-card">
+                    <span class="label">Total System Bookings</span>
+                    <h2 class="value text-blue" id="an-total-bookings">—</h2>
+                    <span class="subtext"><span id="an-active-bookings">—</span> Active | <span id="an-released-bookings">—</span> Released</span>
+                </div>
+
+                <div class="analytics-stat-card">
+                    <span class="label">Concurrency Integrity</span>
+                    <h2 class="value text-green" id="an-integrity-status">Verified 100%</h2>
+                    <span class="subtext">0 Negative Slots • 0 Overlaps</span>
+                </div>
+            </div>
+
+            <!-- 5 Hubs Demand Comparison -->
+            <div class="area-comparison-card">
+                <div class="chart-header">
+                    <div>
+                        <h3>🏙️ 5 Urban Hubs Demand Comparison</h3>
+                        <p class="chart-subtitle">Cross-hub comparison of booking volume, active occupancy, and revenue across Gachibowli, Ameerpet, Banjara Hills, HITEC City, and Madhapur.</p>
+                    </div>
+                    <span class="sample-notice-pill">Calculated from Real DB Records</span>
+                </div>
+                <table class="area-comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Hub Name</th>
+                            <th>Area</th>
+                            <th>Shared Bays</th>
+                            <th>Total Reservations</th>
+                            <th>Active Now</th>
+                            <th>Total Revenue</th>
+                            <th>Average Surge</th>
+                        </tr>
+                    </thead>
+                    <tbody id="an-area-comparison-tbody">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="charts-grid" style="margin-top: 2rem;">
+                <!-- 10 Shared Slots Utilization Chart -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div>
+                            <h3>10 Shared Slots Utilization (P1 to P10)</h3>
+                            <p class="chart-subtitle">Booking frequency per individual shared bay across the 5 hubs</p>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="occupancyChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Hourly Demand Trend Chart -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div>
+                            <h3>Hourly Demand &amp; Peak Periods</h3>
+                            <p class="chart-subtitle">Slot booking distribution based on recorded timestamps</p>
+                        </div>
+                        <div class="peak-badge" id="an-peak-badge">Peak: Loading...</div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="hourlyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Surge Pricing Logic Table & Educational Explanation -->
+            <div class="surge-policy-card">
+                <div class="card-header">
+                    <h3>⚡ Dynamic Surge Pricing Formula</h3>
+                    <p class="card-subtitle">Transparent mathematical algorithm utilized by ParkSmart across the 10 shared slots.</p>
+                </div>
+                <div class="policy-table-wrapper">
+                    <table class="policy-table">
+                        <thead>
+                            <tr>
+                                <th>Occupancy Range</th>
+                                <th>Demand Classification</th>
+                                <th>Surge Multiplier</th>
+                                <th>Effective Hourly Rate</th>
+                                <th>Algorithm Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="tier-dot tier-normal"></span> <strong>0% to 49%</strong></td>
+                                <td>Normal Flow</td>
+                                <td><span class="badge badge-normal">1.00x (Base)</span></td>
+                                <td><strong>Base Rate (₹40 - ₹60/hr)</strong></td>
+                                <td>Standard baseline hourly rate applied.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="tier-dot tier-moderate"></span> <strong>50% to 79%</strong></td>
+                                <td>Moderate Congestion</td>
+                                <td><span class="badge badge-moderate">1.25x (+25%)</span></td>
+                                <td><strong>+25% Surge Factor</strong></td>
+                                <td>Mild incentive to balance parking distribution across city hours.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="tier-dot tier-peak"></span> <strong>80% to 100%</strong></td>
+                                <td>Peak Congestion</td>
+                                <td><span class="badge badge-peak">1.50x (+50%)</span></td>
+                                <td><strong>+50% Peak Surge</strong></td>
+                                <td>Surge allocation rate activated to prioritize essential urban access.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="surge-explanation-footer">
+                    <p>
+                        <strong>Formula:</strong> <code>Effective Price = Hub Base Rate × Dynamic Surge Multiplier</code>. 
+                        Calculated dynamically for each hub and time window based on real database records.
+                    </p>
+                </div>
+            </div>
+
+            <div class="sample-disclaimer-box">
+                <strong>Academic Notice:</strong> All metrics are calculated directly from persistent database records in <code>parksmart.db</code>. 5 urban hubs share 10 parking slots (P1 to P10) for B.Tech IT demonstration purposes.
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ======================================================== -->
+    <!-- AUTHENTICATION MODAL (User & Admin Sign In / Sign Up)   -->
+    <!-- ======================================================== -->
+    <div id="auth-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+        <div class="modal-box auth-modal-box">
+            <button class="modal-close" onclick="closeAuthModal()" aria-label="Close dialog">&times;</button>
+            
+            <div class="auth-tabs">
+                <button class="auth-tab-btn active" id="tab-btn-user" onclick="switchAuthTab('user')">User Login / Register</button>
+                <button class="auth-tab-btn" id="tab-btn-admin" onclick="switchAuthTab('admin')">Admin Login</button>
+            </div>
+
+            <!-- User Auth Form View -->
+            <div id="auth-user-view">
+                <div class="modal-header">
+                    <span class="modal-icon">🚗</span>
+                    <div>
+                        <h3 id="auth-modal-title">User Sign In</h3>
+                        <p class="modal-subtitle">Log in to book slots and manage your reservations.</p>
+                    </div>
+                </div>
+
+                <form id="user-login-form" onsubmit="handleUserLogin(event)">
+                    <div class="form-group">
+                        <label for="u-login-email">Email or Mobile Number <span class="required">*</span></label>
+                        <input type="text" id="u-login-email" class="form-control" placeholder="user@parksmart.local" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="u-login-pass">Password <span class="required">*</span></label>
+                        <input type="password" id="u-login-pass" class="form-control" placeholder="••••••••" required>
+                    </div>
+
+                    <div class="form-actions-stack">
+                        <button type="submit" class="btn btn-primary btn-block">Sign In to User Dashboard</button>
+                        <button type="button" class="btn btn-outline btn-block btn-sm" onclick="quickLoginDemoUser()">
+                            ⚡ Quick Login as Demo User
+                        </button>
+                    </div>
+                </form>
+
+                <div class="auth-toggle-prompt">
+                    <span>Don't have an account?</span>
+                    <button type="button" class="link-btn" onclick="toggleUserRegisterForm()">Create New Account</button>
+                </div>
+
+                <!-- Hidden Registration Form -->
+                <form id="user-register-form" class="hidden" onsubmit="handleUserRegister(event)">
+                    <div class="form-group">
+                        <label for="u-reg-name">Full Name <span class="required">*</span></label>
+                        <input type="text" id="u-reg-name" class="form-control" placeholder="e.g. Rahul Sharma" required minlength="2">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="u-reg-email">Email Address <span class="required">*</span></label>
+                        <input type="email" id="u-reg-email" class="form-control" placeholder="rahul@example.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="u-reg-phone">10-Digit Mobile Number <span class="required">*</span></label>
+                        <input type="tel" id="u-reg-phone" class="form-control" placeholder="9876543210" required pattern="[0-9]{10,15}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="u-reg-pass">Create Password <span class="required">*</span></label>
+                        <input type="password" id="u-reg-pass" class="form-control" placeholder="At least 4 characters" required minlength="4">
+                    </div>
+
+                    <div class="form-actions-stack">
+                        <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+                        <button type="button" class="btn btn-outline btn-block btn-sm" onclick="toggleUserRegisterForm()">
+                            Back to Sign In
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Admin Auth Form View -->
+            <div id="auth-admin-view" class="hidden">
+                <div class="modal-header">
+                    <span class="modal-icon">🛡️</span>
+                    <div>
+                        <h3>Administrator Sign In</h3>
+                        <p class="modal-subtitle">Authorized facility operators only.</p>
+                    </div>
+                </div>
+
+                <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
+                    <div class="form-group">
+                        <label for="adm-login-user">Admin Username / Email <span class="required">*</span></label>
+                        <input type="text" id="adm-login-user" class="form-control" placeholder="admin" required value="admin">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adm-login-pass">Password <span class="required">*</span></label>
+                        <input type="password" id="adm-login-pass" class="form-control" placeholder="••••••••" required value="admin123">
+                    </div>
+
+                    <div class="form-actions-stack">
+                        <button type="submit" class="btn btn-primary btn-block">Log In as Administrator</button>
+                        <button type="button" class="btn btn-outline btn-block btn-sm" onclick="quickLoginAdmin()">
+                            ⚡ Auto-Fill Admin Credentials
+                        </button>
+                    </div>
+                </form>
+                <div class="auth-hint-box">
+                    <p>💡 <strong>Default Admin Credentials:</strong> Username: <code>admin</code> | Password: <code>admin123</code></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- BOOKING CONFIRMATION MODAL & RECEIPT                    -->
+    <!-- ======================================================== -->
+    <div id="booking-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeBookingModal()" aria-label="Close dialog">&times;</button>
+            
+            <div id="modal-step-input">
+                <div class="modal-header">
+                    <span class="modal-icon">🅿️</span>
+                    <div>
+                        <h3 id="modal-title">Confirm Parking Reservation</h3>
+                        <p class="modal-subtitle" id="modal-slot-title">Slot: —</p>
+                    </div>
+                </div>
+
+                <!-- Reservation Snapshot -->
+                <div class="facility-summary-box">
+                    <div class="summary-item">
+                        <span class="summary-label">Parking Hub</span>
+                        <span class="summary-val text-blue" id="modal-facility-name">—</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Area</span>
+                        <span class="summary-val" id="modal-facility-area">—</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Slot Number</span>
+                        <span class="summary-val text-blue" id="modal-slot-number">P1</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Date</span>
+                        <span class="summary-val" id="modal-booking-date">—</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Time Window</span>
+                        <span class="summary-val" id="modal-booking-time">—</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Duration</span>
+                        <span class="summary-val" id="modal-booking-duration">—</span>
+                    </div>
+                </div>
+
+                <!-- User Details Form -->
+                <form id="booking-confirm-form" onsubmit="handleFinalBookingSubmit(event)">
+                    <div class="form-group">
+                        <label for="book-user-name">Driver Full Name <span class="required">*</span></label>
+                        <input type="text" id="book-user-name" class="form-control" placeholder="e.g. Rahul Sharma" required minlength="2">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="book-user-phone">Mobile Number (10 digits) <span class="required">*</span></label>
+                        <input type="tel" id="book-user-phone" class="form-control" placeholder="e.g. 9876543210" required pattern="[0-9]{10,15}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="book-user-email">Email Address (Optional)</label>
+                        <input type="email" id="book-user-email" class="form-control" placeholder="rahul@example.com">
+                    </div>
+
+                    <!-- Price Calculation Banner -->
+                    <div class="price-breakdown-card">
+                        <div class="price-row">
+                            <span>Base Rate:</span>
+                            <span id="price-calc-base">₹50.00 / hr</span>
+                        </div>
+                        <div class="price-row">
+                            <span>Dynamic Surge Factor:</span>
+                            <span id="price-calc-surge">1.00x (Normal)</span>
+                        </div>
+                        <div class="price-row">
+                            <span>Duration:</span>
+                            <span id="price-calc-duration">1 hr</span>
+                        </div>
+                        <div class="price-row total-row">
+                            <strong>Total Payable Amount:</strong>
+                            <strong class="total-price" id="price-calc-total">₹50.00</strong>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" onclick="closeBookingModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="btn-submit-booking">
+                            🔒 Confirm &amp; Reserve Slot
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 2: Success Confirmation Receipt View -->
+            <div id="modal-step-success" class="hidden">
+                <div class="receipt-success-banner">
+                    <div class="receipt-check">✓</div>
+                    <h3>Reservation Confirmed!</h3>
+                    <p>Your parking slot has been atomically secured in the database.</p>
+                </div>
+
+                <div class="receipt-card">
+                    <div class="receipt-id-row">
+                        <span class="receipt-label">Booking ID:</span>
+                        <div class="id-copy-wrapper">
+                            <span class="booking-id-tag" id="receipt-booking-id">PS-XXXX</span>
+                            <button type="button" class="btn-copy" onclick="copyReceiptId()" title="Copy ID">📋 Copy</button>
+                        </div>
+                    </div>
+
+                    <div class="receipt-details">
+                        <div class="receipt-item">
+                            <span>Parking Hub:</span>
+                            <strong id="receipt-facility">—</strong>
+                        </div>
+                        <div class="receipt-item">
+                            <span>Area:</span>
+                            <strong id="receipt-area">—</strong>
+                        </div>
+                        <div class="receipt-item">
+                            <span>Reserved Slot:</span>
+                            <strong class="text-blue" id="receipt-slot">P1</strong>
+                        </div>
+                        <div class="receipt-item">
+                            <span>Date:</span>
+                            <strong id="receipt-date">—</strong>
+                        </div>
+                        <div class="receipt-item">
+                            <span>Time Window:</span>
+                            <strong id="receipt-time">—</strong>
+                        </div>
+                        <div class="receipt-item">
+                            <span>Driver Name:</span>
+                            <strong id="receipt-user">—</strong>
+                        </div>
+                        <div class="receipt-item">
+                            <span>Contact:</span>
+                            <span id="receipt-phone">—</span>
+                        </div>
+                        <div class="receipt-item">
+                            <span>Total Rate:</span>
+                            <strong id="receipt-total">—</strong>
+                        </div>
+                        <div class="receipt-item">
+                            <span>Status:</span>
+                            <span class="badge badge-normal" id="receipt-status">CONFIRMED</span>
+                        </div>
+                    </div>
+
+                    <div class="concurrency-note">
+                        🛡️ <strong>Concurrency Guaranteed:</strong> Handled by SQLite Immediate Transaction. Overlapping bookings for this shared slot across all 5 hubs are mathematically prevented!
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeBookingModal()">Done</button>
+                    <button type="button" class="btn btn-primary" onclick="goToUserHistory()">
+                        View in Booking History
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- ADMIN MODAL: EDIT HUB                                   -->
+    <!-- ======================================================== -->
+    <div id="admin-facility-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="facility-modal-title">
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeAdminFacilityModal()" aria-label="Close dialog">&times;</button>
+            <div class="modal-header">
+                <span class="modal-icon">🏢</span>
+                <div>
+                    <h3 id="facility-modal-title">Edit Parking Hub</h3>
+                    <p class="modal-subtitle">Shared slots P1 to P10 are accessible at this hub.</p>
+                </div>
+            </div>
+
+            <form id="admin-facility-form" onsubmit="handleAdminFacilitySubmit(event)">
+                <input type="hidden" id="af-id">
+
+                <div class="form-group">
+                    <label for="af-name">Hub Name <span class="required">*</span></label>
+                    <input type="text" id="af-name" class="form-control" required minlength="3">
+                </div>
+
+                <div class="form-group">
+                    <label for="af-area">Urban Area <span class="required">*</span></label>
+                    <input type="text" id="af-area" class="form-control" readonly style="background: var(--bg-light-grey);">
+                </div>
+
+                <div class="form-group">
+                    <label for="af-address">Physical Address <span class="required">*</span></label>
+                    <input type="text" id="af-address" class="form-control" required minlength="5">
+                </div>
+
+                <div class="form-group">
+                    <label for="af-city">City</label>
+                    <input type="text" id="af-city" class="form-control" value="Hyderabad" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="af-price">Base Hourly Price (₹) <span class="required">*</span></label>
+                    <input type="number" id="af-price" class="form-control" step="5" min="20" max="300" required>
+                </div>
+
+                <div class="form-group" id="af-status-group">
+                    <label for="af-active">Operational Status</label>
+                    <select id="af-active" class="form-control">
+                        <option value="1">Active (Open to Public)</option>
+                        <option value="0">Inactive (Closed)</option>
+                    </select>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeAdminFacilityModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-facility">Save Hub Details</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-left">
+                <div class="footer-brand">
+                    <span>🅿️</span> <strong>ParkSmart</strong>
+                </div>
+                <p>The Concurrency-Safe Urban Parking Allocator with Surge Analytics.</p>
+                <p class="footer-meta">B.Tech IT Academic Mini Project • Developed with Node.js, Express &amp; SQLite.</p>
+            </div>
+            <div class="footer-right">
+                <div class="footer-local-pill">
+                    💻 Running on Localhost (Not Publicly Exposed)
+                </div>
+                <div class="footer-links">
+                    <a href="#home" onclick="navigateTo('home')">Home</a>
+                    <a href="#user-dashboard" onclick="navigateTo('user-dashboard')">User Dashboard</a>
+                    <a href="#admin-dashboard" onclick="navigateTo('admin-dashboard')">Admin Dashboard</a>
+                    <a href="#analytics" onclick="navigateTo('analytics')">Surge Analytics</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Offline Chart.js -->
+    <script src="js/chart.min.js"></script>
+    <!-- Application Logic -->
+    <script src="js/app.js"></script>
+    <script src="js/analytics.js"></script>
+</body>
+</html>

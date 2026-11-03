@@ -1,0 +1,28 @@
+{
+  "name": "parksmart",
+  "version": "1.0.0",
+  "description": "ParkSmart — The Concurrency-Safe Urban Parking Allocator with Surge Analytics",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "seed": "node database/seed.js",
+    "test": "node tests/run_all.js",
+    "test:concurrency": "node tests/concurrency_test.js"
+  },
+  "keywords": [
+    "parking",
+    "concurrency",
+    "sqlite",
+    "express",
+    "surge-pricing",
+    "mini-project"
+  ],
+  "author": "B.Tech IT Student",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "sqlite3": "^6.0.1"
+  }
+}
